@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL RESTRITO - CORE DA BASE</title>
+    <style>
+        /* Estilização Geral Estilo Arcade CRT */
+        body {
+            background-color: #020202;
+            background-image: 
+                radial-gradient(circle at 50% 50%, transparent 30%, #000000 100%),
+                linear-gradient(rgba(0, 255, 102, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 102, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
+            color: #00ff66;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+            transition: background 1.5s ease-in-out;
+        }
+
+        /* Novo Fundo do Sistema Liberado: Estável, limpo e com brilho central */
+        body.liberated {
+            background-color: #010a04;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 102, 0.08) 0%, #000000 80%),
+                linear-gradient(rgba(0, 255, 102, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 102, 0.04) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* Duas Barras de Varredura Laser */
+        .laser-line {
+            position: absolute;
+            width: 100%;
+            height: 5px;
+            background: rgba(0, 255, 102, 0.07);
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.3);
+            pointer-events: none;
+            z-index: 5;
+            left: 0;
+        }
+        .laser-1 { top: -10px; animation: scanline-move 5s linear infinite; }
+        .laser-2 { top: -10px; animation: scanline-move 5s linear infinite; animation-delay: 2.5s; }
+
+        /* Remove as barras verticais quando o sistema for liberado */
+        body.liberated .laser-line {
+            display: none;
+        }
+
+        /* Efeito de linhas de tubo de imagem (Scanlines fixas) */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            z-index: 10;
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        /* Molduras Decorativas nos Cantos da Tela */
+        .corner-decor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: rgba(0, 255, 102, 0.2);
+            border-style: solid;
+            pointer-events: none;
+            transition: all 1.5s ease-in-out;
+        }
+        .top-left { top: 20px; left: 20px; border-width: 2px 0 0 2px; }
+        .top-right { top: 20px; right: 20px; border-width: 2px 2px 0 0; }
+        .bottom-left { bottom: 20px; left: 20px; border-width: 0 0 2px 2px; }
+        .bottom-right { bottom: 20px; right: 20px; border-width: 0 2px 2px 0; }
+
+        /* Iluminação das molduras após liberação */
+        body.liberated .corner-decor {
+            border-color: rgba(0, 255, 102, 0.7);
+            box-shadow: 0 0 8px rgba(0, 255, 102, 0.2);
+        }
+
+        /* Gabinete do Terminal */
+        .arcade-container {
+            border: 4px solid #ff0055;
+            padding: 40px;
+            background: rgba(13, 13, 13, 0.95);
+            box-shadow: 0 0 35px #ff0055, inset 0 0 15px #000;
+            text-align: center;
+            position: relative;
+            width: 500px;
+            border-radius: 8px;
+            z-index: 20;
+            animation: border-flicker 2s infinite;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #ff0055;
+            text-shadow: 0 0 10px #ff0055;
+            margin-top: 0;
+            animation: glitch 1.5s infinite;
+        }
+
+        .alert-sub {
+            color: #ffcc00;
+            text-shadow: 0 0 8px #ffcc00;
+            font-weight: bold;
+            margin-bottom: 30px;
+            animation: glitch 2.3s infinite;
+        }
+
+        /* Campo de Senha Arcade */
+        input {
+            background: #000;
+            border: 2px solid #00ff66;
+            color: #00ff66;
+            font-size: 24px;
+            padding: 12px;
+            text-align: center;
+            outline: none;
+            width: 80%;
+            letter-spacing: 5px;
+            box-shadow: inset 0 0 10px #00ff66, 0 0 10px rgba(0, 255, 102, 0.5);
+            margin-bottom: 20px;
+        }
+
+        /* Botão de Comando */
+        .btn-arcade {
+            background: #00ff66;
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 15px #00ff66;
+            text-transform: uppercase;
+        }
+
+        .btn-arcade:hover {
+            background: #fff;
+            color: #000;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        #status-display {
+            margin-top: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 0 0 5px currentColor;
+        }
+
+        .count-txt {
+            font-size: 24px;
+            color: #00ff66;
+            margin-top: 15px;
+            letter-spacing: 3px;
+        }
+
+        .welcome-txt {
+            font-size: 14px;
+            color: #ffffff;
+            opacity: 0.8;
+            margin-top: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Animações */
+        @keyframes scanline-move {
+            0% { top: -10px; }
+            100% { top: 100vh; }
+        }
+
+        @keyframes border-flicker {
+            0%, 100% { border-color: #ff0055; box-shadow: 0 0 35px #ff0055, inset 0 0 15px #000; }
+            50% { border-color: #aa0038; box-shadow: 0 0 20px #aa0038, inset 0 0 15px #000; }
+        }
+
+        @keyframes glitch {
+            0% { opacity: 1; transform: scale(1); }
+            40% { opacity: 1; transform: scale(1); }
+            41% { opacity: 0.8; transform: scale(0.99); text-shadow: -2px 0 #ff0055, 2px 0 #00ff66; }
+            42% { opacity: 1; transform: scale(1); text-shadow: 0 0 10px inherit; }
+            90% { opacity: 1; transform: scale(1); }
+            91% { opacity: 0.4; transform: scale(1.01); }
+            92% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Elementos de Varredura Laser Duplos -->
+    <div class="laser-line laser-1"></div>
+    <div class="laser-line laser-2"></div>
+
+    <!-- Molduras Decorativas -->
+    <div class="corner-decor top-left"></div>
+    <div class="corner-decor top-right"></div>
+    <div class="corner-decor bottom-left"></div>
+    <div class="corner-decor bottom-right"></div>
+
+    <div class="arcade-container" id="terminal-box">
+        <h1>[ SYSTEM CRASHED ]</h1>
+        <p class="alert-sub">SISTEMA TRAVADO - ACESSO RESTRITO</p>
+        <p>INSIRA A CHAVE DE SEGURANÇA:</p>
+        
+        <input type="password" id="key-input" maxlength="8" placeholder="********">
+        <br>
+        <button class="btn-arcade" onclick="validateKey()">Executar Comando</button>
+        
+        <div id="status-display" style="color: #ffcc00;">SISTEMA: AGUARDANDO DESTRANQUE...</div>
+    </div>
+
+    <script>
+        function validateKey() {
+            const inputVal = document.getElementById('key-input').value;
+            const display = document.getElementById('status-display');
+            const container = document.getElementById('terminal-box');
+            
+            if (inputVal === '81579634') {
+                container.innerHTML = `
+                    <h1 style="color: #ffcc00; text-shadow: 0 0 10px #ffcc00; animation: none;">[ PROCESSANDO ]</h1>
+                    <div id="countdown-status" style="color: #ffcc00; font-weight: bold; margin-top: 20px;">SINAL CONFIRMADO! REINICIALIZANDO...</div>
+                    <div id="number-sequence" class="count-txt"></div>
+                    <div id="welcome-msg" class="welcome-txt"></div>
+                `;
+
+                const seqDiv = document.getElementById('number-sequence');
+                const welcomeDiv = document.getElementById('welcome-msg');
+
+                // Sequência da contagem progressiva
+                setTimeout(() => { seqDiv.innerHTML = "1..."; }, 1000);
+                setTimeout(() => { seqDiv.innerHTML = "1... 2..."; }, 2000);
+                setTimeout(() => { seqDiv.innerHTML = "1... 2... 3..."; }, 3000);
+                
+                // Exibe "Bem-vindo" exatamente 1 segundo após o aparecimento do número 3
+                setTimeout(() => { 
+                    welcomeDiv.innerHTML = "Bem-vindo";
+                }, 4000);
+
+                // Muda de tela e altera o fundo exatamente 2 segundos após o "Bem-vindo"
+                setTimeout(() => {
+                    document.body.classList.add('liberated'); // Modifica o plano de fundo e desativa lasers
+                    container.style.animation = "none";
+                    container.style.borderColor = '#00ff66';
+                    container.style.boxShadow = '0 0 30px #00ff66, inset 0 0 15px #000';
+                    container.innerHTML = `
+                        <h1 style="color: #00ff66; text-shadow: 0 0 10px #00ff66; animation: none;">[ SISTEMA LIBERADO ]</h1>
+                        <p style="color: #fff; font-weight: bold;">NÚCLEO DE PROTOCOLOS REESTABELECIDO</p>
+                        <p>Acesso total concedido ao terminal principal da base.</p>
+                        <div style="border: 2px dashed #00ff66; padding: 15px; margin-top: 25px; background: #000; font-size: 14px;">
+                            ESTADO DA SESSÃO: SEGURO<br>
+                            DIRETÓRIO ATIVO: ROOT_CORE
+                        </div>
+                    `;
+                }, 6000);
+
+            } else {
+                display.style.color = '#ff0055';
+                display.innerHTML = "CHAVE INCORRETA. ENTRADA BLOQUEADA.";
+                document.getElementById('key-input').value = '';
+                
+                setTimeout(() => {
+                    if (document.getElementById('key-input')) {
+                        display.style.color = '#ffcc00';
+                        display.innerHTML = "SISTEMA: AGUARDANDO DESTRANQUE...";
+                    }
+                }, 2000);
+            }
+        }
+
+        document.getElementById('key-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                validateKey();
+            }
+        });
+    </script>
+</body>
+</html>
